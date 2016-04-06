@@ -3,14 +3,19 @@ package com.bignerdranch.android.initialtwittersyncadapter.model;
 import android.content.ContentValues;
 
 import com.bignerdranch.android.initialtwittersyncadapter.contentprovider.DatabaseContract;
+import com.google.gson.annotations.SerializedName;
 
 public class Tweet {
 
+    @SerializedName("id_str")
     private String mServerId;
-    private int mId;
+    @SerializedName("text")
     private String mText;
+    @SerializedName("favorite_count")
     private int mFavoriteCount;
+    @SerializedName("retweet_count")
     private int mRetweetCount;
+    @SerializedName("user")
     private User mUser;
     private String mUserId;
 

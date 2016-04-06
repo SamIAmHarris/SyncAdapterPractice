@@ -3,12 +3,16 @@ package com.bignerdranch.android.initialtwittersyncadapter.model;
 import android.content.ContentValues;
 
 import com.bignerdranch.android.initialtwittersyncadapter.contentprovider.DatabaseContract;
+import com.google.gson.annotations.SerializedName;
 
 public class User {
 
     private int mId;
+    @SerializedName("id_str")
     private String mServerId;
+    @SerializedName("screen_name")
     private String mScreenName;
+    @SerializedName("profile_image_url")
     private String mPhotoUrl;
 
     public User(String serverId, String screenName, String photoUrl) {
