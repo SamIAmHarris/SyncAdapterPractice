@@ -34,6 +34,11 @@
                 android:resource="@xml/authenticator"/>
         </service>
 
+        <provider
+            android:authorities="com.bignerdranch.android.initialtwittersyncadapter.provider"
+            android:name=".contentprovider.TweetContentProvider"
+            android:exported="false"
+            android:syncable="true"/>
 
     </application>
 

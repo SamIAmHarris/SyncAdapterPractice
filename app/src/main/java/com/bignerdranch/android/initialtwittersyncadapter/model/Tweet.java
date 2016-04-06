@@ -1,5 +1,9 @@
 package com.bignerdranch.android.initialtwittersyncadapter.model;
 
+import android.content.ContentValues;
+
+import com.bignerdranch.android.initialtwittersyncadapter.contentprovider.DatabaseContract;
+
 public class Tweet {
 
     private String mServerId;
@@ -42,5 +46,15 @@ public class Tweet {
 
     public String getUserId() {
         return mUserId;
+    }
+
+    public ContentValues getContentValues() {
+        ContentValues cv = new ContentValues();
+        cv.put(DatabaseContract.Tweet.SERVER_ID, mServerId);
+        cv.put(DatabaseContract.Tweet.TEXT, mText);
+        cv.put(DatabaseContract.Tweet.FAVORITE_COUNT, mFavoriteCount);
+        cv.put(DatabaseContract.Tweet.RETWEET_COUNT, mRetweetCount);
+        cv.put(DatabaseContract.Tweet.USER_ID, mUser.getServerId());
+        return cv;
     }
 }

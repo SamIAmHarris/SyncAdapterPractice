@@ -7,6 +7,8 @@ import android.accounts.AccountManagerCallback;
 import android.accounts.AccountManagerFuture;
 import android.accounts.AuthenticatorException;
 import android.accounts.OperationCanceledException;
+import android.database.Cursor;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.LinearLayoutManager;
@@ -20,7 +22,9 @@ import android.widget.TextView;
 
 import com.bignerdranch.android.initialtwittersyncadapter.R;
 import com.bignerdranch.android.initialtwittersyncadapter.account.Authenticator;
+import com.bignerdranch.android.initialtwittersyncadapter.contentprovider.DatabaseContract;
 import com.bignerdranch.android.initialtwittersyncadapter.model.Tweet;
+import com.bignerdranch.android.initialtwittersyncadapter.model.User;
 import com.bumptech.glide.Glide;
 
 import java.io.IOException;
@@ -48,6 +52,48 @@ public class TweetListFragment extends Fragment {
         recyclerView.setAdapter(tweetAdapter);
         return view;
     }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+
+        clearDb();
+        testInsert();
+        testQuery();
+    }
+
+    private void testInsert() {
+        User user = new User("server_id", "redhornet5490", "cool_guys.png");
+        Tweet tweet = new Tweet("server_id", "anti tweet", 0, 0, user);
+
+        Uri userUri = getActivity().getContentResolver()
+                .insert(DatabaseContract.User.CONTENT_URI, user.getContentValues());
+        Log.d(TAG, "Inserted user into uri: " + userUri);
+
+        Uri tweetUri = getActivity().getContentResolver()
+                .insert(DatabaseContract.Tweet.CONTENT_URI, tweet.getContentValues());
+        Log.d(TAG, "Inserted tweet into uri: " + tweetUri);
+    }
+
+    private void clearDb() {
+        getActivity().getContentResolver()
+                .delete(DatabaseContract.User.CONTENT_URI, null, null);
+        getActivity().getContentResolver()
+                .delete(DatabaseContract.Tweet.CONTENT_URI, null, null);
+    }
+
+    private void testQuery() {
+        Cursor userCursor = getActivity().getContentResolver()
+                .query(DatabaseContract.User.CONTENT_URI, null, null, null, null);
+        Log.d(TAG, "Have user cursor: " + userCursor);
+        userCursor.close();
+        Cursor tweetCursor = getActivity().getContentResolver()
+                .query(DatabaseContract.Tweet.CONTENT_URI, null, null, null, null);
+        Log.d(TAG, "Have user cursor: " + tweetCursor);
+        tweetCursor.close();
+    }
+
+
 
     @Override
     public void onStart() {
