@@ -12,6 +12,7 @@ import android.database.ContentObservable;
 import android.database.ContentObserver;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.v4.app.Fragment;
@@ -29,9 +30,14 @@ import com.bignerdranch.android.initialtwittersyncadapter.account.Authenticator;
 import com.bignerdranch.android.initialtwittersyncadapter.contentprovider.DatabaseContract;
 import com.bignerdranch.android.initialtwittersyncadapter.contentprovider.TweetCursorWrapper;
 import com.bignerdranch.android.initialtwittersyncadapter.contentprovider.UserCursorWrapper;
+import com.bignerdranch.android.initialtwittersyncadapter.model.PreferenceStore;
 import com.bignerdranch.android.initialtwittersyncadapter.model.Tweet;
 import com.bignerdranch.android.initialtwittersyncadapter.model.User;
 import com.bumptech.glide.Glide;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GoogleApiAvailability;
+import com.google.android.gms.gcm.GoogleCloudMessaging;
+import com.google.android.gms.iid.InstanceID;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -42,11 +48,13 @@ import java.util.List;
 public class TweetListFragment extends Fragment {
 
     private static final String TAG = "TweetListFragment";
+    private static final String SENDER_ID = "467257893089";
 
     private String accessToken;
     private Account account;
     private RecyclerView recyclerView;
     private TweetAdapter tweetAdapter;
+    private boolean mSyncingPeriodically;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -69,8 +77,10 @@ public class TweetListFragment extends Fragment {
     @Override
     public void onStop() {
         super.onStop();
-        ContentResolver.removePeriodicSync(
-                account, DatabaseContract.AUTHORITY, Bundle.EMPTY);
+        if(mSyncingPeriodically) {
+            ContentResolver.removePeriodicSync(
+                    account, DatabaseContract.AUTHORITY, Bundle.EMPTY);
+        }
     }
 
     private void fetchAccessToken() {
@@ -81,17 +91,22 @@ public class TweetListFragment extends Fragment {
                     @Override
                     public void run(AccountManagerFuture<Bundle> future) {
                         initRecyclerView();
-                        ContentResolver.setIsSyncable(
-                                account, DatabaseContract.AUTHORITY, 1);
-                        ContentResolver.setSyncAutomatically(
-                                account, DatabaseContract.AUTHORITY, true);
-                        ContentResolver.addPeriodicSync(
-                                account, DatabaseContract.AUTHORITY, Bundle.EMPTY, 60);
+                        initGcm();
                         getActivity().getContentResolver().registerContentObserver(
                                 DatabaseContract.Tweet.CONTENT_URI, true,
                                 contentObserver);
                     }
                 }, null);
+    }
+
+    private void initGcm() {
+        PreferenceStore preferenceStore = PreferenceStore.get(getActivity());
+        String currentToken = preferenceStore.getGcmToken();
+        if(currentToken == null) {
+            new GcmRegistrationTask().execute();
+        } else {
+            Log.d(TAG, "Have token: " + currentToken);
+        }
     }
 
     private void initRecyclerView() {
@@ -141,6 +156,54 @@ public class TweetListFragment extends Fragment {
         tweetCursor.close();
 
         return tweets;
+    }
+
+    private class GcmRegistrationTask extends AsyncTask<Void, Void, String> {
+
+        @Override
+        protected String doInBackground(Void... params) {
+            if(getActivity() == null) {
+                return null;
+            }
+
+            int googleApiAvailable = GoogleApiAvailability.getInstance()
+                    .isGooglePlayServicesAvailable(getActivity());
+            if(googleApiAvailable != ConnectionResult.SUCCESS) {
+                Log.e(TAG, "Le Play Services are not le available");
+                return null;
+            }
+
+            InstanceID instanceID = InstanceID.getInstance(getActivity());
+            try {
+              String token = instanceID.getToken(
+                      SENDER_ID, GoogleCloudMessaging.INSTANCE_ID_SCOPE, null);
+                Log.d(TAG, "Got token: " + token);
+                return token;
+            } catch (IOException e) {
+
+            }
+
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(String token) {
+            if(token == null) {
+                setupPeriodicSync();
+            } else {
+                PreferenceStore.get(getActivity()).setGcmToken(token);
+            }
+        }
+    }
+
+    private void setupPeriodicSync() {
+        mSyncingPeriodically = true;
+        ContentResolver.setIsSyncable(
+                account, DatabaseContract.AUTHORITY, 1);
+        ContentResolver.setSyncAutomatically(
+                account, DatabaseContract.AUTHORITY, true);
+        ContentResolver.addPeriodicSync(
+                account, DatabaseContract.AUTHORITY, Bundle.EMPTY, 60);
     }
 
     private class TweetAdapter extends RecyclerView.Adapter<TweetHolder> {

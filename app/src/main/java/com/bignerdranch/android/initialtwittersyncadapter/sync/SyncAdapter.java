@@ -49,10 +49,8 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
     @Override
     public void onPerformSync(Account account, Bundle extras, String authority,
                               ContentProviderClient provider, SyncResult syncResult) {
-        Log.i("Syncomania", "onPerformSync");
         List<Tweet> tweets = fetchTweets();
         insertTweetData(tweets);
-
     }
 
     private void insertTweetData(List<Tweet> tweets) {
